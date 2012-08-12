@@ -1,0 +1,56 @@
+DGLE2 Engine Log File
+Version: Beta 2 (Tue Mar 15 18:46:31 2011)
+Visit http://dgle.deeprosoft.com/ for more information.
+Log Started at 12.8.2012.
+02:10:26.541 - Initializing Engine...
+02:10:26.542 - Engine extension plugin "DGLE2_EXT.dplug" found.
+02:10:26.555 - Plugin "DGLE2_EXT Beta 2 (Mar 17 2011)" by "DGLE2 Team" connected succesfully.
+02:10:26.555 - Plugin description: "Standart official DGLE2 extension plugin. Provides support for various file formats and engine extensions."
+02:10:27.240 - Splash window created.
+System Information
+	Operating System: 6.1 "Microsoft Windows 7 Ultimate Edition" Service Pack 1 (Build 7601), 64-bit
+	CPU: Intel(R) Core(TM)2 Duo CPU     T6670  @ 2.20GHz (~2200 Mhz X 2)
+	RAM Total: 4095 MB.
+	RAM Available: 2132 MB.
+	Video device: (Count: 2) NVIDIA GeForce GT 320M   1024 MB. (driver "nvd3dumx.dll,nvwgf2umx.dll,nvwgf2umx.dll,nvd3dum,nvwgf2um,nvwgf2um", ver. 8.17.0013.0142, date 15.05.2012 14:48:00)
+02:10:29.540 - Window created successfully.
+02:10:29.545 - Filesystem Subsystem initialized.
+02:10:29.546 - Initializing RenderGL Subsystem...
+02:10:30.108 - OpenGL 3.3.0 on GeForce GT 320M/PCIe/SSE2(NVIDIA Corporation)
+02:10:30.111 - Maximum texture resolution: 8192X8192
+02:10:30.113 - Maximum anisotropy level: 16X
+02:10:30.114 - Maximum multitexturing layer: 32
+02:10:30.116 - RenderGL Subsystem initialized.
+02:10:30.124 - Resource Manager Subsystem initialized.
+02:10:30.195 - DirectSound initialized.
+02:10:30.196 - Sound Subsystem initialized.
+02:10:30.236 - DirectInput initialized.
+02:10:30.237 - Input Subsystem initialized.
+02:10:30.238 - Engine Initialized.
+02:10:30.239 - Calling user initialization procedure...
+02:10:30.409 - [WARNING] File "Data\eraser.png" doesn't exists.
+02:10:30.422 - [WARNING] File "Data\eraser.png" doesn't exists.
+02:10:30.431 - [WARNING] File "Data\eraser.png" doesn't exists.
+02:10:30.524 - [WARNING] File "Data\UI\hp.png" doesn't exists.
+02:10:30.526 - [WARNING] File "Data\UI\hp_m.png" doesn't exists.
+02:10:32.014 - Done.
+02:10:33.535 - Render mode (Viewport: 1366X768, WinCtrlAccess: Full, Fullscreen, VSync, MSAA: 16X) has been set properly.
+02:10:33.589 - **Entering main loop**
+02:11:46.656 - **Exiting main loop**
+02:11:46.671 - Finalizing Engine...
+02:11:46.693 - Calling user finalization procedure...
+02:11:46.694 - Done.
+02:11:46.696 - Plugin "DGLE2_EXT" disconnected succesfully.
+02:11:47.961 - OpenGL Rendering and Device contexts finalized.
+02:11:48.487 - Resource Manager Subsystem finalized.
+02:11:48.495 - [WARNING] Can't destroy blank cursor.
+02:11:48.500 - Input Subsystem finalized.
+02:11:48.577 - Sound Subsystem finalized.
+02:11:48.579 - RenderGL Subsystem finalized.
+02:11:48.580 - Filesystem Subsystem finalized.
+02:11:48.581 - Window closed properly.
+02:11:48.589 - Engine Finalized.
+----
+Warning(s): 6 Error(s): 0
+Average FPS: 27
+Log Closed.
