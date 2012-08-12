@@ -3,6 +3,7 @@ unit TaskList;
 interface
 
 uses
+  DGLE2_types,
   Item;
 
 type
@@ -34,6 +35,7 @@ type
   end;
 
   function TaskParam( x, y : Single ): TTaskParam; overload;
+  function TaskParam( pos : TPoint2 ): TTaskParam; overload;
   function Task( ttype : TTaskType; param : TTaskParam ): TTask;
 
 implementation
@@ -45,6 +47,12 @@ function TaskParam( x, y : Single ): TTaskParam; overload;
 begin
   Result.x := x;
   Result.y := y;
+end;
+
+function TaskParam( pos : TPoint2 ): TTaskParam; overload;
+begin
+  Result.x := pos.x;
+  Result.y := pos.y;
 end;
 
 function Task( ttype : TTaskType; param : TTaskParam ): TTask;
@@ -86,14 +94,9 @@ begin
   if count <> 0 then
   begin
     case Task[ 0 ].ttype of
-      Move:
-      begin
-        TCreature( Parent ).Move( Task[ 0 ].param, result );
-      end;
-      Take:
-      begin
-        TCreature( Parent ).Take( Task[ 0 ].param, result );
-      end;
+      Move: TCreature( Parent ).Move( Task[ 0 ].param, result );
+      Take: TCreature( Parent ).Take( Task[ 0 ].param, result );
+      Drop: TCreature( Parent ).Drop( Task[ 0 ].param, result );
     end;
     if result then Next;
   end;
@@ -101,6 +104,7 @@ end;
 
 procedure TTaskList.Free;
 begin
+  count := 0;
   Task := nil;
 end;
 

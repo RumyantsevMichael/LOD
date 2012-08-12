@@ -98,8 +98,10 @@ type
     procedure Attack( subject : PCreature ); virtual; abstract;
 
     procedure Say( text : string );
+
     procedure Move( param : TTaskParam; out result : Boolean );
     procedure Take( param : TTaskParam; out result : Boolean );
+    procedure Drop( param : TTaskParam; out result : Boolean );
 
     procedure Init( group : Byte );
     procedure Render;
@@ -267,7 +269,6 @@ begin
 end;
 
 
-
 procedure TCreature.IncHP(value: Single);
 begin
   hp := hp + value;
@@ -381,6 +382,7 @@ begin
   else SpeakStack.Push( text, pos );
 end;
 
+
 procedure TCreature.Move( param : TTaskParam; out result : Boolean );
 begin
   trg.x := param.x;
@@ -391,7 +393,7 @@ end;
 procedure TCreature.Take( param : TTaskParam; out result : Boolean );
 begin
   if ( pos.x = param.x ) and ( pos.y = param.y ) then
-    if bag.Add( param.item^ ) = ok then
+    if bag.Add( param.item^ ) then
       param.item^ := nil
     else
       Say('I can`t carry more');
@@ -399,6 +401,22 @@ begin
   Result := True;
 end;
 
+procedure TCreature.Drop( param : TTaskParam; out result : Boolean );
+var
+  x : Byte;
+  y : Byte;
+begin
+  x := Round( pos.x - region.rect.x ) div TILE_SIZE + 1;
+  y := Round( pos.y - region.rect.y ) div TILE_SIZE + 1;
+
+  if region.item[ x, y ] = nil then
+  begin
+    region.item[ x, y ] := param.item^;
+    Result := True;
+  end
+  else
+    result := false;
+end;
 
 { TSpeakStack }
 

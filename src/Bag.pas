@@ -8,8 +8,6 @@ uses
 
 type
 
-  TResult = ( ok, failed );
-
   TBag = record
     item : array of TItem;
     count : Byte;
@@ -23,12 +21,12 @@ type
 
     procedure SetSize( size : Byte );
 
-    function Add( item : TItem ): TResult;
+    function Add( item : TItem ): Boolean;
     function Del( index : Byte ): TItem;
 
     procedure Replace( index1, index2 : Byte );
 
-    function Empty( out index : Byte ): TResult;
+    function Empty( out index : Byte ): Boolean;
     procedure Clear;
 
     procedure Render;
@@ -42,6 +40,8 @@ uses
   Input,
 
   Game,
+  TaskList,
+  UI,
 
   Item.Coin;
 
@@ -92,32 +92,41 @@ begin
 
   if grid <> nil then
     if grid.enabled then
-      if grid.focused then
-        if mouse.bLeftClick then
-        for j := 1 to grid.row do
-        for i := 1 to grid.column do
+      if mouse.bLeftClick then
+        if GUIfocused^ then
         begin
-          k := (j - 1) * grid.column + i - 1;
+          if grid.focused then
+          for j := 1 to grid.row do
+          for i := 1 to grid.column do
+          begin
+            k := (j - 1) * grid.column + i - 1;
 
-          if grid.cell[ k ].focused then
-          if grid.cell[ k ].enabled then
-          if buffer = nil then
-          begin
-            if item[ k ] <> nil then
+            if grid.cell[ k ].focused then
+            if grid.cell[ k ].enabled then
+            if buffer = nil then
             begin
-              buffer := item[ k ];
-              Del( k );
-            end;
-          end
-          else
-          begin
-            if item[ k ] = nil then
+              if item[ k ] <> nil then
+              begin
+                buffer := item[ k ];
+                Del( k );
+              end;
+            end
+            else
             begin
-              item[ k ] := buffer;
-              buffer := nil;
+              if item[ k ] = nil then
+              begin
+                item[ k ] := buffer;
+                buffer := nil;
+              end;
             end;
           end;
-        end;
+        end
+        else
+          if buffer <> nil then
+          begin
+            //map.Place(  );
+            buffer := nil;
+          end;
 
   for i := 0 to Length(item) - 1 do
     if item[ i ] <> nil then
@@ -129,7 +138,7 @@ begin
 end;
 
 
-function TBag.Empty( out index : Byte ): TResult;
+function TBag.Empty( out index : Byte ): Boolean;
 var
   i: Integer;
 begin
@@ -137,32 +146,26 @@ begin
   if item[ i ] = nil then
   begin
     index := i;
-    Result := ok;
+    Result := True;
     Exit;
   end;
 
-  Result := failed;
+  Result := False;
 end;
 
-function TBag.Add( item : TItem ): TResult;
+function TBag.Add( item : TItem ): Boolean;
 var
   index : Byte;
 begin
+  Result := False;
+
   if used < count then
-  begin
-    if Empty( index ) = ok then
+    if Empty( index ) = True then
     begin
       Self.item[ index ] := item;
       Inc( used );
-      Result := ok;
-    end
-    else
-      Result := failed;
-  end
-  else
-  begin
-    Result := failed;
-  end;
+      Result := True;
+    end;
 end;
 
 function TBag.Del( index : Byte ): TItem;

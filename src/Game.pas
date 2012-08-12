@@ -64,6 +64,18 @@ begin
   Result.y := ( mouse.state.iy/camera.scl + camera.pos.y - Window.Height / camera.scl/2 ) * TILE_SIZE / TSY ;
 end;
 
+procedure GetTile( pos : TPoint2; out region : PRegion; out x, y : Byte );
+var
+  region_x : Byte;
+  region_y : Byte;
+begin
+  region_x := Ceil( pos.x / 32 / 16 );
+  region_y := Ceil( pos.y / 32 / 16 );
+  region := @Map.region[ region_x, region_y ];
+  x := Round( pos.x / 32 - ( region_x - 1 ) * 16 );
+  y := Round( pos.y / 32 - ( region_y - 1 ) * 16 );
+end;
+
 procedure Exit;
 begin
   sndChannel := nil;
@@ -76,6 +88,11 @@ var
   i: Integer;
   j: Integer;
   k: Integer;
+  reg : PRegion;
+  tile_x : Byte;
+  tile_y : Byte;
+  x : Integer;
+  y : Integer;
 begin
   Input.Init;
 
@@ -107,6 +124,7 @@ begin
   player.trg.y := 2700;
 
   j := Random( 150 ) + 15;
+  j := 0;
   mobStack.Free;
   for i := 0 to j do
   begin
@@ -116,13 +134,18 @@ begin
 
     mobStack.mob[ k ].enemyList.Add( @player );
 
-    SetLength( mobStack.mob[ k ].skillList, 1 );
+    SetLength( mobStack.mob[ k ].skillList, 2 );
     mobStack.mob[ k ].skillList[ 0 ] := TFireball;
+    mobStack.mob[ k ].skillList[ 1 ] := TShokwave;
 
-    mobStack.mob[ k ].pos.x := Random( MAP_WIDTH  * 16 * 32 ) + 32;
-    mobStack.mob[ k ].pos.y := Random( MAP_HEIGHT * 16 * 32 ) + 32;
-    mobStack.mob[ k ].trg.x := Random( MAP_WIDTH  * 16 * 32 ) + 32;
-    mobStack.mob[ k ].trg.y := Random( MAP_HEIGHT * 16 * 32 ) + 32;
+    repeat
+      x := Random( MAP_WIDTH  * 16 * TILE_SIZE ) + TILE_SIZE;
+      y := Random( MAP_HEIGHT * 16 * TILE_SIZE ) + TILE_SIZE;
+      GetTile( Point2( x, y ), reg, tile_x, tile_y );
+    until reg.coll[ tile_x, tile_y ] = 1;
+
+    mobStack.mob[ k ].pos.x := tile_x;
+    mobStack.mob[ k ].pos.y := tile_y;
   end;
 
   for i := 0 to Length( mobStack.mob ) - 1 do
@@ -286,26 +309,30 @@ begin
 
   // Player
 
-  if mouse.state.bLeftButton then
-    if foc_reg <> nil then
-      if foc_reg.item[ foc_x + 1, foc_y + 1 ] <> nil then
-      begin
-        player.TaskList.Add( Task( Move, TaskParam( pos.x, pos.y )));
-        Param.x := pos.x;
-        Param.y := pos.y;
-        Param.item := @foc_reg.item[ foc_x + 1, foc_y + 1 ];
-        player.TaskList.Add( Task( Take, Param ));
-      end;
-
-  if mouse.state.bRightButton then
+  if not GUIfocused^ then
   begin
-    if Player <> nil then
+    if mouse.state.bLeftButton then
+      if foc_reg <> nil then
+        if foc_reg.item[ foc_x + 1, foc_y + 1 ] <> nil then
+        begin
+          player.TaskList.Add( Task( Move, TaskParam( pos.x, pos.y )));
+          Param.x := pos.x;
+          Param.y := pos.y;
+          Param.item := @foc_reg.item[ foc_x + 1, foc_y + 1 ];
+          player.TaskList.Add( Task( Take, Param ));
+        end;
+
+    if mouse.state.bRightButton then
     begin
-      player.trg := GetMapFocusedPoint;
-    end
-    else
-    begin
-      camera.trg := GetMapFocusedPoint;
+      if Player <> nil then
+      begin
+        player.TaskList.Free;
+        player.TaskList.Add( Task( Move, TaskParam( pos.x, pos.y )));
+      end
+      else
+      begin
+        camera.trg := GetMapFocusedPoint;
+      end;
     end;
   end;
 
