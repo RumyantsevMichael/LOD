@@ -39,7 +39,7 @@ uses
 
 const
   APP_CAPTION = 'Legends of Dwarves';
-  APP_VERSION = '0.0.0.3';
+  APP_VERSION = '0.0.0.4';
   APP_STAGE = 'Pre-alpha';
   LIB_PATH = 'Lib\';
 

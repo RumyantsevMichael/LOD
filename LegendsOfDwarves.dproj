@@ -77,12 +77,12 @@
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-			<VerInfo_Build>3</VerInfo_Build>
+			<VerInfo_Build>4</VerInfo_Build>
 			<VerInfo_Locale>1033</VerInfo_Locale>
 			<VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
 			<VerInfo_Private>true</VerInfo_Private>
 			<VerInfo_MajorVer>0</VerInfo_MajorVer>
-			<VerInfo_Keys>CompanyName=M-Games;FileDescription=Devil Hunter;FileVersion=0.0.0.3;InternalName=Devil Hunter;LegalCopyright=;LegalTrademarks=;OriginalFilename=Devil Hunter.exe;ProductName=Devil Hunter;ProductVersion=0.0;Comments=Pre-alpha;PrivateBuild=</VerInfo_Keys>
+			<VerInfo_Keys>CompanyName=M-Games;FileDescription=Legends of Dwarves;FileVersion=0.0.0.4;InternalName=Legends of Dwarves;LegalCopyright=;LegalTrademarks=;OriginalFilename=LegendsOfDwarves.exe;ProductName=Legends of Dwarves;ProductVersion=0.0;Comments=Pre-alpha;PrivateBuild=</VerInfo_Keys>
 		</PropertyGroup>
 		<Import Condition="'$(Cfg_2_Win32)'!='' And Exists('Option.optset')" Project="Option.optset"/>
 		<ItemGroup>

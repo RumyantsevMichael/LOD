@@ -27,6 +27,8 @@ type
     rect : TRectf;
     rect_s : TRectf;
 
+    procedure Place(  );
+
     procedure Generate( x, y : Integer );
     procedure Load( num : Integer );
     procedure Save;
@@ -236,6 +238,11 @@ begin
     MapFile.Read( @Data, SizeOf( Byte ), result );
     vegetation[ i, j ] := Data;
   end;
+end;
+
+procedure TRegion.Place;
+begin
+
 end;
 
 procedure TRegion.Save;

@@ -2,6 +2,9 @@ unit UI;
 
 interface
 
+var
+  GUIfocused : PBoolean;
+
 procedure Init;
 procedure Render;
 procedure Update;
@@ -605,6 +608,7 @@ begin
 
   player.bag.SetGrid( @GUIform.Find('grd_bag')^ );
   player.RunePage.SetGrid( @GUIform.Find('grd_rune')^ );
+  GUIfocused := @GUIform.focused;
 end;
 
 procedure Render;

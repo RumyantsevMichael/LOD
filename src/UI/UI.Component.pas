@@ -42,6 +42,7 @@ type
   TGUIPack = record
     Item : array of TComponent;
     count : Integer;
+    focused : Boolean;
 
     function Add: Integer;
     function Find( name : string ): PComponent;
@@ -98,9 +99,14 @@ procedure TGUIPack.Update;
 var
   i: Integer;
 begin
+  focused := False;
+
   for i := 0 to count - 1 do
     if Item[ i ] <> nil then
+    begin
       Item[ i ].Update;
+      if Item[ i ].focused then focused := True;
+    end;
 end;
 
 { TComponent }

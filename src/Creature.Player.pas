@@ -19,8 +19,6 @@ type
     RunePage : TRunePage;
 
     procedure Attack( subject: PCreature ); override;
-    procedure Drop( index : Byte ); overload;
-    procedure Drop( name : string ); overload;
 
     procedure Init( group : Byte );
     procedure Render;
@@ -70,6 +68,7 @@ begin
   mp := mp_max;
 
   bag.SetSize( 18 );
+  bag.used := 0;
 
   bag.Add( RunePack.Find('Iwaz')^ );
   bag.Add( RunePack.Find('Sowilu')^ );
@@ -126,29 +125,6 @@ begin
 
   bag.Update;
   RunePage.Update;
-end;
-
-
-procedure TPlayer.Drop( index : Byte );
-var
-  x : Byte;
-  y : Byte;
-  buf : TItem;
-begin
-  x := Round( pos.x - region.x ) div 32 + 1;
-  y := Round( pos.y - region.y ) div 32 + 1;
-  if region.item[ x, y ] = nil then
-  begin
-    buf := nil;
-    buf := bag.Del( index );
-    if buf <> nil then
-      region.item[ x, y ] := buf;
-  end;
-end;
-
-procedure TPlayer.Drop( name: string );
-begin
-
 end;
 
 
