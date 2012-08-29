@@ -42,8 +42,14 @@
 			<Base>true</Base>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Base)'!=''">
+			<VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
+			<VerInfo_Build>6</VerInfo_Build>
+			<Manifest_File>None</Manifest_File>
+			<VerInfo_MajorVer>0</VerInfo_MajorVer>
+			<VerInfo_Private>true</VerInfo_Private>
+			<Icon_MainIcon>icon.ico</Icon_MainIcon>
 			<VerInfo_Locale>1049</VerInfo_Locale>
-			<VerInfo_Keys>CompanyName=;FileDescription=;FileVersion=1.0.0.0;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=;ProductName=;ProductVersion=1.0.0.0;Comments=</VerInfo_Keys>
+			<VerInfo_Keys>CompanyName=M-Games;FileDescription=Legends of Dwarves;FileVersion=0.0.0.6;InternalName=;LegalCopyright=;LegalTrademarks=;OriginalFilename=LegendsOfDwarves.exe;ProductName=Legends of Dwarves;ProductVersion=0.0;Comments=Pre-alpha;PrivateBuild=</VerInfo_Keys>
 			<DCC_Namespace>System;Xml;Data;Datasnap;Web;Soap;Winapi;$(DCC_Namespace)</DCC_Namespace>
 			<DCC_ImageBase>00400000</DCC_ImageBase>
 			<DCC_E>false</DCC_E>
@@ -77,12 +83,10 @@
 			<DCC_Define>DEBUG;$(DCC_Define)</DCC_Define>
 		</PropertyGroup>
 		<PropertyGroup Condition="'$(Cfg_2_Win32)'!=''">
-			<VerInfo_Build>4</VerInfo_Build>
+			<DCC_IntegerOverflowCheck>true</DCC_IntegerOverflowCheck>
+			<VerInfo_Build>12</VerInfo_Build>
 			<VerInfo_Locale>1033</VerInfo_Locale>
-			<VerInfo_IncludeVerInfo>true</VerInfo_IncludeVerInfo>
-			<VerInfo_Private>true</VerInfo_Private>
-			<VerInfo_MajorVer>0</VerInfo_MajorVer>
-			<VerInfo_Keys>CompanyName=M-Games;FileDescription=Legends of Dwarves;FileVersion=0.0.0.4;InternalName=Legends of Dwarves;LegalCopyright=;LegalTrademarks=;OriginalFilename=LegendsOfDwarves.exe;ProductName=Legends of Dwarves;ProductVersion=0.0;Comments=Pre-alpha;PrivateBuild=</VerInfo_Keys>
+			<VerInfo_Keys>CompanyName=M-Games;FileDescription=The Legends of Dwarves;FileVersion=0.0.0.12;InternalName=The Legends of Dwarves;LegalCopyright=;LegalTrademarks=;OriginalFilename=LegendsOfDwarves.exe;ProductName=The Legends of Dwarves;ProductVersion=0.0;Comments=Pre-alpha;PrivateBuild=</VerInfo_Keys>
 		</PropertyGroup>
 		<Import Condition="'$(Cfg_2_Win32)'!='' And Exists('Option.optset')" Project="Option.optset"/>
 		<ItemGroup>
@@ -99,7 +103,7 @@
 			<DCCReference Include="src\Camera.pas"/>
 			<DCCReference Include="src\Input.pas"/>
 			<DCCReference Include="src\Game.pas"/>
-			<DCCReference Include="src\Map.pas"/>
+			<DCCReference Include="src\World.pas"/>
 			<DCCReference Include="src\Creature.pas"/>
 			<DCCReference Include="src\Creature.Mob.pas"/>
 			<DCCReference Include="src\Creature.Player.pas"/>
@@ -123,6 +127,7 @@
 			<DCCReference Include="src\UI\UI.Image.pas"/>
 			<DCCReference Include="src\Items\Item.Coin.pas"/>
 			<DCCReference Include="src\TaskList.pas"/>
+			<DCCReference Include="src\Skills\Skill.Poisoning.pas"/>
 			<None Include="ModelSupport_DevilHunter\default.txaPackage"/>
 			<BuildConfiguration Include="Debug">
 				<Key>Cfg_2</Key>

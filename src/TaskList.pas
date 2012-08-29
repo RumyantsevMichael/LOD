@@ -8,13 +8,14 @@ uses
 
 type
 
-  TTaskType = ( Move, Take, Drop );
+  TTaskType = ( t_Move, t_Take, t_Relive );
 
   PTaskParam = ^TTaskParam;
   TTaskParam = record
     x : Single;
     y : Single;
     item : PItem;
+    time : Integer;
   end;
 
   PTask = ^TTask;
@@ -94,11 +95,17 @@ begin
   if count <> 0 then
   begin
     case Task[ 0 ].ttype of
-      Move: TCreature( Parent ).Move( Task[ 0 ].param, result );
-      Take: TCreature( Parent ).Take( Task[ 0 ].param, result );
-      Drop: TCreature( Parent ).Drop( Task[ 0 ].param, result );
+      t_Move  : TCreature( Parent ).Move   ( Task[ 0 ].param, result );
+      t_Take  : TCreature( Parent ).Take   ( Task[ 0 ].param, result );
+      t_Relive: TCreature( Parent ).Respawn( Task[ 0 ].param, result );
     end;
-    if result then Next;
+
+    if result then
+      Next
+    else
+    case Task[ 0 ].ttype of
+      t_Relive: Dec( Task[ 0 ].param.time );
+    end;
   end;
 end;
 

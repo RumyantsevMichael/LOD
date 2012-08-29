@@ -7,7 +7,7 @@ uses
 
   TaskList,
   Bag,
-  Map;
+  World;
 
 type
 
@@ -44,6 +44,9 @@ type
     delta : TPoint2;
     speed : Single;
 
+    pos_spawn : TPoint2;
+    respawn_time : Integer;
+
     hp : Single;
     hp_max : Integer;
     hp_regen : Single;
@@ -62,8 +65,10 @@ type
     energy : Integer;
     dexterity : Integer;
 
-    dist_aggr   : Single;
-    dist_attack : Single;
+    dist_aggr     : Single;
+    dist_aggr_d   : Single;
+    dist_attack   : Single;
+    dist_Attack_d : Single;
 
     isDead : Boolean;
 
@@ -72,7 +77,10 @@ type
     SpeakStack : TSpeakStack;
 
     group : Byte;
+
+    area   : PArea;
     region : PRegion;
+    tile   : TPoint;
 
     bag : TBag;
 
@@ -101,13 +109,16 @@ type
 
     procedure Move( param : TTaskParam; out result : Boolean );
     procedure Take( param : TTaskParam; out result : Boolean );
-    procedure Drop( param : TTaskParam; out result : Boolean );
+    procedure Respawn( param : TTaskParam; out result : Boolean );
+
+    procedure Spawn( pos : TPoint2; time : Integer );
 
     procedure Init( group : Byte );
     procedure Render;
     procedure Update( dt : Single );
 
-    procedure Death; virtual; abstract;
+    procedure Drop; virtual; abstract;
+    procedure Death;
   end;
 
 
@@ -144,6 +155,7 @@ var
   x : Single;
   y : Single;
 begin
+  if debug then
   if not isDead then
   begin
     Render2D.LineWidth( 2 );
@@ -163,24 +175,31 @@ procedure TCreature.Update(dt: Single);
 var
   vec : TPoint2;
   new : TPoint2;
-  reg : PRegion;
+  new_area : PArea;
+  new_region : PRegion;
+  new_x, new_y : Cardinal;
+  c_speed : Single;
   l : Single;
-  i: Integer;
-  j: Integer;
+  i : Integer;
+  j : Integer;
 begin
   inc( counter );
+  TaskList.Update( Self );
 
   if not isDead then
   begin
-
-    TaskList.Update( Self );
-
     // movement
 
-    for i := 1 to MAP_WIDTH do
-    for j := 1 to MAP_HEIGHT do
-      if PointInRect( pos, game.map.region[ i, j ].rect ) then
-        region := @Game.map.region[ i, j ];
+    {$REGION ' Определение положения на карте '}
+
+      area := nil;
+      region := nil;
+
+      area := Map.GetArea( pos );
+      region := Map.GetRegion( pos );
+      Map.GetTile( pos, tile.x, tile.y );
+
+    {$ENDREGION}
 
     vec.x := pos.x - trg.x;
     vec.y := pos.y - trg.y;
@@ -199,8 +218,14 @@ begin
     ang := RadToDeg( ArcTan( dir.y / dir.x ));
     if dir.x > 0 then ang := ang - 180;
 
-    vec.x := vec.x / l * ( l - speed );
-    vec.y := vec.y / l * ( l - speed );
+    if region <> nil then
+      c_speed := speed * ( 1 - region.collision[ tile.x, tile.y ] / 255 )
+    else;
+
+    vec.x := vec.x / l;
+    vec.y := vec.y / l;
+    vec.x := vec.x * ( l - c_speed );
+    vec.y := vec.y * ( l - c_speed );
 
     new.x := trg.x + vec.x;
     new.y := trg.y + vec.y;
@@ -210,36 +235,30 @@ begin
 
     // collision
 
-    reg := nil;
-    if region <> nil then
-      for j := region.y - 1 to region.y + 1 do
-      for i := region.x - 1 to region.x + 1 do
-        if ( i >= 0 ) and ( j >= 0 ) then
-          if PointInRect( new, game.map.region[ i + 1, j + 1 ].rect ) then
-            reg := @Game.map.region[ i + 1, j + 1 ];
+    new_area := nil;
+    new_region := nil;
 
-    if reg <> nil then
-      for j := 0 to 15 do
-      for i := 0 to 15 do
-        if
-          PointInRect( new,
-            Rectf(
-              reg.rect.x + TILE_SIZE * i, reg.rect.y + TILE_SIZE * j,
-              TILE_SIZE, TILE_SIZE ))
-        then
-          if reg.coll[ i + 1, j + 1 ] = 0 then
-          begin
-            pos.x := trg.x + vec.x;
-            pos.y := trg.y + vec.y;
-          end
-          else
-          begin
-            trg.x := pos.x;
-            trg.y := pos.y;
-            Say('Здесь не пройти');
-          end;
+    new_area := Map.GetArea( new );
 
-    if Sqrt( Sqr( pos.x - trg.x ) + Sqr( pos.y - trg.y ) ) < speed then
+    if new_area <> nil then
+    begin
+      new_region := Map.GetRegion( new );
+
+      if new_region <> nil then
+      begin
+        Map.GetTile( new, new_x, new_y );
+
+        if new_region.collision[ new_x, new_y ] <> 255 then
+        begin
+          pos.x := trg.x + vec.x;
+          pos.y := trg.y + vec.y;
+        end
+        else
+          TaskList.Free;
+      end;
+    end;
+
+    if Sqrt( Sqr( pos.x - trg.x ) + Sqr( pos.y - trg.y ) ) < c_speed then
     begin
       pos.x := trg.x;
       pos.y := trg.y;
@@ -260,6 +279,16 @@ begin
     mp_regen := energy / 20;
 
     speed := 4 + dexterity / 10;
+
+    if dist_aggr > dist_aggr_d then
+      dist_aggr := dist_aggr - 0.05;
+    if dist_aggr < dist_aggr_d then
+      dist_aggr := dist_aggr_d;
+
+    if dist_attack > dist_attack_d then
+      dist_attack := dist_attack - 0.05;
+    if dist_attack < dist_attack_d then
+      dist_attack := dist_attack_d;
   end;
 
   // speak
@@ -352,7 +381,6 @@ begin
   Inc( sp, 5 );
 end;
 
-
 procedure TCreature.IncEP;
 begin
   if sp > 0 then
@@ -372,6 +400,14 @@ begin
 end;
 
 
+procedure TCreature.Spawn( pos : TPoint2; time : Integer );
+begin
+  pos_spawn := pos;
+  Self.pos := pos;
+  Self.trg := pos;
+  respawn_time := time;
+end;
+
 procedure TCreature.Say(text: string);
 begin
   if SpeakStack.count > 0 then
@@ -382,7 +418,6 @@ begin
   else SpeakStack.Push( text, pos );
 end;
 
-
 procedure TCreature.Move( param : TTaskParam; out result : Boolean );
 begin
   trg.x := param.x;
@@ -392,30 +427,42 @@ end;
 
 procedure TCreature.Take( param : TTaskParam; out result : Boolean );
 begin
-  if ( pos.x = param.x ) and ( pos.y = param.y ) then
-    if bag.Add( param.item^ ) then
-      param.item^ := nil
-    else
-      Say('I can`t carry more');
-
+  if param.item^ <> nil then
+    if ( pos.x = param.x ) and ( pos.y = param.y ) then
+      if bag.Add( param.item^ ) then
+        param.item^ := nil
+      else
+        Say('I can`t carry more');
   Result := True;
 end;
 
-procedure TCreature.Drop( param : TTaskParam; out result : Boolean );
-var
-  x : Byte;
-  y : Byte;
+procedure TCreature.Respawn( param : TTaskParam; out result : Boolean );
 begin
-  x := Round( pos.x - region.rect.x ) div TILE_SIZE + 1;
-  y := Round( pos.y - region.rect.y ) div TILE_SIZE + 1;
-
-  if region.item[ x, y ] = nil then
+  if param.time <= 0 then
   begin
-    region.item[ x, y ] := param.item^;
-    Result := True;
+    pos.x := param.x;
+    pos.y := param.y;
+    trg := pos;
+    isDead := False;
+    result := True;
   end
   else
     result := false;
+end;
+
+
+procedure TCreature.Death;
+var
+  param : TTaskParam;
+begin
+  TaskList.Free;
+  Drop;
+  isDead := True;
+
+  param.x := pos_spawn.x;
+  param.y := pos_spawn.y;
+  param.time := respawn_time;
+  TaskList.Add( Task( t_Relive, param ));
 end;
 
 { TSpeakStack }
@@ -516,3 +563,4 @@ begin
 end;
 
 end.
+

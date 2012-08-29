@@ -4,8 +4,10 @@ interface
 
 uses
   DGLE2_types,
+  DGLE2_EXT,
 
   Skill,
+  Rune,
   Creature;
 
 type
@@ -20,9 +22,11 @@ type
 
     damage : Integer;
 
+    Emitter : IParticleEmitter;
+
     constructor Create; override;
 
-    procedure Init( Parent : TCreature ); override;
+    procedure Init( Parent : TCreature; target : TPoint2; Rune : array of TRune ); override;
     procedure Render; override;
     procedure Update( dt : Single ); override;
   end;
@@ -34,10 +38,12 @@ uses
 
   SubSystems,
   Resources,
+  Sound,
   game,
 
-  Map,
-  Creature.Mob;
+  World,
+  Creature.Mob,
+  TaskList;
 
 { TFireball }
 
@@ -49,7 +55,9 @@ begin
   mp_price := 10;
 end;
 
-procedure TFireball.Init(Parent: TCreature);
+procedure TFireball.Init( Parent : TCreature; target : TPoint2; Rune : array of TRune );
+var
+  i : Integer;
 begin
   inherited;
 
@@ -59,18 +67,23 @@ begin
   begin
     parent.DecMP( mp_price );
 
+    for i := Low( rune ) to High( rune ) do
+      if rune[ i ].name = 'Iwaz' then
+        damage := rune[ i ].Level * 10;
+
     time := 30;
     pos := Parent.pos;
-    ang := parent.ang;
+    ang := GetAngle( pos, target );
     vel := 20;
 
-    damage := parent.energy * 5;
+    //pp_Fireball.CreateEmitter( Emitter, true );
   end;
 end;
 
 procedure TFireball.Render;
 var
-  position : TPoint2;
+  position : TPoint3;
+  exist : Boolean;
 begin
   inherited;
 
@@ -78,20 +91,35 @@ begin
   begin
     position.x := pos.x * TSX / TILE_SIZE;
     position.y := pos.y * TSY / TILE_SIZE;
-    Render2D.DrawPoint( position, Color4($FF9B28), Round( 10 * camera.scl ) );
+
+    Render2D.DrawPoint
+    (
+      Point2( position.x, position.y ),
+      Color4( $ff0000, 128 ), Round( Sqrt( camera.scl ) * 10 )
+    );
+
+    pp_Fireball.EmitterExist( Emitter, exist );
+
+    if exist then
+    begin
+      Emitter.SetPosition( position, true );
+      Emitter.SetScale( Sqrt( camera.scl ));
+      pp_Fireball.Draw2D;
+    end;
   end;
 end;
 
 procedure TFireball.Update(dt: Single);
 var
   i : Integer;
+  exist : Boolean;
 begin
   inherited;
 
+  Dec( time, Round(dt) );
+
   if time > 0 then
   begin
-    Dec( time, Round(dt) );
-
     pos.x := pos.x - cos(DegToRad( ang )) * vel;
     pos.y := pos.y - Sin(DegToRad( ang )) * vel;
 
@@ -104,9 +132,27 @@ begin
           then
           begin
             parent.enemyList.item[ i ].DecHP( damage );
+
+            if parent.ClassName = 'TPlayer' then
+            begin
+              parent.enemyList.item[ i ].dist_aggr := parent.enemyList.item[ i ].dist_aggr * 2;
+              parent.enemyList.item[ i ].dist_attack := parent.enemyList.item[ i ].dist_attack * 2;
+            end;
+
+            time := 0;
+
             if parent.enemyList.item[ i ].isDead then
-              parent.IncXP( 25 );
+            begin
+              parent.IncXP( parent.enemyList.item[ i ].xp );
+              parent.enemyList.item[ i ].xp := 0;
+            end;
           end;
+  end
+  else
+  begin
+    pp_Fireball.EmitterExist( Emitter, exist );
+
+    if exist then pp_Fireball.KillEmitter( Emitter );
   end;
 end;
 

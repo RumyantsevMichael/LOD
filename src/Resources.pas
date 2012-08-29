@@ -3,7 +3,8 @@ unit Resources;
 interface
 
 uses
-  DGLE2;
+  DGLE2,
+  DGLE2_EXT;
 
 type
 
@@ -57,9 +58,28 @@ type
 
 ////////////////////////////////////////////////////////////////////////////////
 
+  PMusic = ^IMusic;
+  TMusic = record
+    Name : string;
+    Data : IMusic;
+    isFree : Boolean;
+  end;
+
+  TMusicPack = record
+    Item : array of TMusic;
+
+    function Add( Name : string ): PMusic;
+    function Find( Name : string ): PMusic;
+    procedure Free;
+  end;
+
+////////////////////////////////////////////////////////////////////////////////
+
 const
   RES_PATH = 'Data\';
+  TXT_PATH = RES_PATH + 'Textures\';
   SND_PATH = RES_PATH + 'Sound\';
+  PRT_PATH = RES_PATH + 'Particles\';
 
 var
 
@@ -67,16 +87,22 @@ var
 
   FntPack : TFntPack;
 
-  tp_txt: array [1..4] of TTxtPack;
+  ts_ground : ITexture;
+  ts_decoration : ITexture;
+  tp_object : TTxtPack;
+
   txt_pack_GUI: TTxtPack;
   txt_pack_Mob: TTxtPack;
-
-  txt_pack_Skill: TTxtPack;
 
   txt_pack_Item: TTxtPack;
   txt_pack_Rune: TTxtPack;
 
-  snd_pack : TSndPack;
+  sound_pack : TSndPack;
+  music_pack : TMusicPack;
+
+  pp_Fireball : IParticleEffect = nil;
+  pp_Shokwave : IParticleEffect = nil;
+  pp_Poisoning : IParticleEffect = nil;
 
 procedure Load;
 procedure Free;
@@ -96,75 +122,38 @@ var
 begin
   TLF := Settings.Graphics.Filtration;
 
-  for i := 5 to 18 do
-    ResMan.Load(
-                StrToPAChar( RES_PATH + 'UI\Fonts\Tahoma\' + IntToStr( i ) + '.dft'),
-                IEngBaseObj( FntPack.Add('Tahoma', i  )^)
-                );
+  {$REGION ' Fonts '}
+    for i := 5 to 18 do
+      ResMan.Load(
+                  StrToPAChar( RES_PATH + 'UI\Fonts\Tahoma\' + IntToStr( i ) + '.dft'),
+                  IEngBaseObj( FntPack.Add('Tahoma', i  )^)
+                  );
 
-  for i := 17 to 24 do
-    ResMan.Load(
-                StrToPAChar( RES_PATH + 'UI\Fonts\Lineage\' + IntToStr( i ) + '.dft'),
-                IEngBaseObj( FntPack.Add('Lineage', i  )^)
-                );
+    for i := 17 to 24 do
+      ResMan.Load(
+                  StrToPAChar( RES_PATH + 'UI\Fonts\Lineage\' + IntToStr( i ) + '.dft'),
+                  IEngBaseObj( FntPack.Add('Lineage', i  )^)
+                  );
 
-  for i := 10 to 24 do
-    ResMan.Load(
-                StrToPAChar( RES_PATH + 'UI\Fonts\Fiddums\' + IntToStr( i ) + '.dft'),
-                IEngBaseObj( FntPack.Add('Fiddums', i  )^)
-                );
+    for i := 10 to 24 do
+      ResMan.Load(
+                  StrToPAChar( RES_PATH + 'UI\Fonts\Fiddums\' + IntToStr( i ) + '.dft'),
+                  IEngBaseObj( FntPack.Add('Fiddums', i  )^)
+                  );
 
-  for i := 10 to 24 do
-    ResMan.Load(
-                StrToPAChar( RES_PATH + 'UI\Fonts\Centaur\' + IntToStr( i ) + '.dft'),
-                IEngBaseObj( FntPack.Add('Centaur', i  )^)
-                );
+    for i := 10 to 24 do
+      ResMan.Load(
+                  StrToPAChar( RES_PATH + 'UI\Fonts\Centaur\' + IntToStr( i ) + '.dft'),
+                  IEngBaseObj( FntPack.Add('Centaur', i  )^)
+                  );
+  {$ENDREGION}
 
   ResMan.Load( RES_PATH + 'Mob\player.png', IEngBaseObj(txt_pack_Mob.Add('player')^), TLF );
                                                         txt_pack_Mob.Find('player').SetFrameSize( 32, 32 );
   ResMan.Load( RES_PATH + 'Mob\bot.png',    IEngBaseObj(txt_pack_Mob.Add('bot')^),    TLF );
                                                         txt_pack_Mob.Find('bot').SetFrameSize( 32, 32 );
 
-  ResMan.Load( RES_PATH + 'eraser.png', IEngBaseObj( tp_txt[ 1 ].Add('eraser')^), TLF);
-  ResMan.Load( RES_PATH + 'dirt.png',   IEngBaseObj( tp_txt[ 1 ].Add('dirt')^),   TLF);
-  ResMan.Load( RES_PATH + 'grass.png',  IEngBaseObj( tp_txt[ 1 ].Add('grass')^),  TLF);
-  ResMan.Load( RES_PATH + 'water.png',  IEngBaseObj( tp_txt[ 1 ].Add('water')^),  TLF);
-  ResMan.Load( RES_PATH + 'sand.png',   IEngBaseObj( tp_txt[ 1 ].Add('sand')^),   TLF);
-
-  ResMan.Load( RES_PATH + 'eraser.png', IEngBaseObj( tp_txt[ 2 ].Add('eraser')^), TLF);
-  ResMan.Load( RES_PATH + 'bush_1.png', IEngBaseObj( tp_txt[ 2 ].Add('bush_1')^), TLF);
-  ResMan.Load( RES_PATH + 'bush_2.png', IEngBaseObj( tp_txt[ 2 ].Add('bush_2')^), TLF);
-  ResMan.Load( RES_PATH + 'bush_3.png', IEngBaseObj( tp_txt[ 2 ].Add('bush_3')^), TLF);
-
-  ResMan.Load( RES_PATH + 'eraser.png',  IEngBaseObj( tp_txt[ 3 ].Add('eraser')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_1.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_1')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_2.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_2')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_3.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_3')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_4.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_4')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_5.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_5')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_6.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_6')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_7.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_7')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_8.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_8')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_9.png',  IEngBaseObj( tp_txt[ 3 ].Add('tree_9')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_10.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_10')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_11.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_11')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_12.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_12')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_13.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_13')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_14.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_14')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_15.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_15')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_16.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_16')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_17.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_17')^), TLF);
-  ResMan.Load( RES_PATH + 'tree_18.png', IEngBaseObj( tp_txt[ 3 ].Add('tree_18')^), TLF);
-
-  ResMan.Load( RES_PATH + 'pillar.png', IEngBaseObj( tp_txt[ 4 ].Add('pillar')^), TLF);
-  ResMan.Load( RES_PATH + 'wall.png',   IEngBaseObj( tp_txt[ 4 ].Add('wall')^),   TLF);
-
   // GUI
-  ResMan.Load( RES_PATH + 'UI\hp.png',     IEngBaseObj(txt_pack_GUI.Add('hp')^),     TLF);
-  ResMan.Load( RES_PATH + 'UI\hp_m.png',   IEngBaseOBj(txt_pack_GUI.Add('hp_m')^),   TLF);
-  ResMan.Load( RES_PATH + 'UI\xp.png',     IEngBaseObj(txt_pack_GUI.Add('xp')^),     TLF);
-  ResMan.Load( RES_PATH + 'UI\xp_m.png',   IEngBaseOBj(txt_pack_GUI.Add('xp_m')^),   TLF);
-
   ResMan.Load( RES_PATH + 'UI\border.png', IEngBaseObj(txt_pack_GUI.Add('border')^), TLF);
   ResMan.Load( RES_PATH + 'UI\angle.png',  IEngBaseObj(txt_pack_GUI.Add('angle')^),  TLF);
   ResMan.Load( RES_PATH + 'UI\back.png',   IEngBaseObj(txt_pack_GUI.Add('back')^),   TLF);
@@ -197,24 +186,32 @@ begin
   ResMan.Load( RES_PATH + 'Items\coin.png',  IEngBaseObj(txt_pack_Item.Add('coin')^),  TLF);
   ResMan.Load( RES_PATH + 'Items\sword.png', IEngBaseObj(txt_pack_Item.Add('sword')^), TLF);
 
-  ResMan.Load( RES_PATH + 'Items\Runes\Iwaz.png',   IEngBaseObj(txt_pack_Rune.Add('Iwaz')^),   TLF);
-  ResMan.Load( RES_PATH + 'Items\Runes\Sowilu.png', IEngBaseObj(txt_pack_Rune.Add('Sowilu')^), TLF);
-
-  // Skills
-  ResMan.Load( RES_PATH + 'Skills\shokwave.png', IEngBaseObj(txt_pack_Skill.Add('shokwave')^), TLF);
+  ResMan.Load( RES_PATH + 'Items\Runes\Iwaz.png',    IEngBaseObj(txt_pack_Rune.Add('Iwaz')^),    TLF);
+  ResMan.Load( RES_PATH + 'Items\Runes\Ansuz.png',   IEngBaseObj(txt_pack_Rune.Add('Ansuz')^),  TLF);
+  ResMan.Load( RES_PATH + 'Items\Runes\Sowilu.png',  IEngBaseObj(txt_pack_Rune.Add('Sowilu')^),  TLF);
+  ResMan.Load( RES_PATH + 'Items\Runes\Berkana.png', IEngBaseObj(txt_pack_Rune.Add('Berkana')^), TLF);
 
   // Sound
-  ResMan.Load( SND_PATH + 'Music\music_1.wav', IEngBaseObj(snd_pack.Add('music_1')^));
-  ResMan.Load( SND_PATH + 'Music\music_2.wav', IEngBaseObj(snd_pack.Add('music_2')^));
-  ResMan.Load( SND_PATH + 'Music\music_3.wav', IEngBaseObj(snd_pack.Add('music_3')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_001.mp3', IEngBaseObj(music_pack.Add('Atmosphere_001')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_002.mp3', IEngBaseObj(music_pack.Add('Atmosphere_002')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_003.mp3', IEngBaseObj(music_pack.Add('Atmosphere_003')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_004.mp3', IEngBaseObj(music_pack.Add('Atmosphere_004')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_005.mp3', IEngBaseObj(music_pack.Add('Atmosphere_005')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_006.mp3', IEngBaseObj(music_pack.Add('Atmosphere_006')^));
+  ResMan.Load( SND_PATH + 'Music\Atmosphere_007.mp3', IEngBaseObj(music_pack.Add('Atmosphere_007')^));
+  ResMan.Load( SND_PATH + 'Music\Battle_001.mp3',     IEngBaseObj(music_pack.Add('Battle_001')^));
+
+  // Particles
+  ResMan.Load( PRT_PATH + 'Fireball.pyro',  IEngBaseObj( pp_Fireball ));
+  ResMan.Load( PRT_PATH + 'Shokwave.pyro',  IEngBaseObj( pp_Shokwave ));
+  ResMan.Load( PRT_PATH + 'Poisoning.pyro', IEngBaseObj( pp_Poisoning ));
 end;
 
 procedure Free;
 begin
-  tp_txt[ 1 ].Free;
-  tp_txt[ 2 ].Free;
-  tp_txt[ 3 ].Free;
-  tp_txt[ 4 ].Free;
+  ts_ground := nil;
+  ts_decoration := nil;
+  tp_object.Free;
 
   txt_pack_Mob.Free;
 
@@ -223,11 +220,14 @@ begin
   txt_pack_Item.Free;
   txt_pack_Rune.Free;
 
-  txt_pack_Skill.Free;
+  pp_Fireball := nil;
+  pp_Shokwave := nil;
+  pp_Poisoning := nil;
 
   FntPack.Free;
 
-  snd_pack.Free;
+  sound_pack.Free;
+  music_pack.Free;
 end;
 
 { TTxttxt_pack_Txt }
@@ -385,6 +385,63 @@ end;
 procedure TSndPack.Free;
 var
   i: Integer;
+begin
+  for i := 0 to Length( Item ) - 1 do
+  begin
+    Item[ i ].Data := nil;
+    Item[ i ].isFree := True;
+  end;
+end;
+
+{ TMusicPack }
+
+function TMusicPack.Add(Name: string): PMusic;
+var
+  i: Integer;
+  j: Integer;
+  N: Boolean;
+  L: Integer;
+begin
+
+  j := 0;
+  N := True;
+  L := Length( Item );
+
+  for i := 0 to L - 1 do
+  begin
+    if Item[ i ].isFree then
+    begin
+      j := i;
+      N := False;
+    end;
+  end;
+
+  if N then
+  begin
+    SetLength( Item, L + 1 );
+    j := L;
+  end;
+
+  Item[ j ].Name := Name;
+  Item[ j ].isFree := False;
+  Result := @Item[ j ].Data;
+end;
+
+function TMusicPack.Find(Name: string): PMusic;
+var
+  i : Integer;
+begin
+  Result := nil;
+
+  for i := 0 to Length( Item ) - 1 do
+    if Item[ i ].Name = Name then
+      if not Item[ i ].isFree then
+        Result := @Item[ i ].Data;
+end;
+
+procedure TMusicPack.Free;
+var
+  i : Integer;
 begin
   for i := 0 to Length( Item ) - 1 do
   begin

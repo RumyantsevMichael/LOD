@@ -11,7 +11,7 @@ type
   TBag = record
     item : array of TItem;
     count : Byte;
-    used : Byte;
+    used : Integer;
 
     grid : PGrid;
 
@@ -27,6 +27,7 @@ type
     procedure Replace( index1, index2 : Byte );
 
     function Empty( out index : Byte ): Boolean;
+    function NotEmpty( out index : Byte ): Boolean;
     procedure Clear;
 
     procedure Render;
@@ -43,6 +44,7 @@ uses
   TaskList,
   UI,
 
+  Rune,
   Item.Coin;
 
 { TBag }
@@ -72,14 +74,14 @@ begin
       h := grid.cell[ k ].h;
 
       if item[ k ] <> nil then
+      begin
         if item[ k ].texture <> nil then
           item[ k ].texture.Draw2D( x, y, w, h );
-    end;
 
-    for j := 1 to grid.row do
-    for i := 1 to grid.column do
-      if grid.cell[ k ].focused then
-        item[ k ].RenderInfo( mouse.state.iX, mouse.state.iY );
+        if grid.cell[ k ].focused then
+          item[ k ].RenderInfo( mouse.state.iX, mouse.state.iY );
+      end;
+    end;
   end;
 end;
 
@@ -106,10 +108,7 @@ begin
             if buffer = nil then
             begin
               if item[ k ] <> nil then
-              begin
-                buffer := item[ k ];
-                Del( k );
-              end;
+                buffer := Del( k );
             end
             else
             begin
@@ -117,6 +116,16 @@ begin
               begin
                 item[ k ] := buffer;
                 buffer := nil;
+              end
+              else
+              begin
+                if buffer.ClassType = TRune then
+                if item[ k ].ClassType = TRune then
+                if buffer.name = 'Berkana' then
+                begin
+                  Inc( ( item[ k ] as TRune ).Level, ( buffer as TRune ).Level );
+                  buffer := nil;
+                end;
               end;
             end;
           end;
@@ -124,17 +133,9 @@ begin
         else
           if buffer <> nil then
           begin
-            //map.Place(  );
+            //World.Place(  );
             buffer := nil;
           end;
-
-  for i := 0 to Length(item) - 1 do
-    if item[ i ] <> nil then
-      if item[ i ].ClassType = TCoin then
-      begin
-        Inc( gold, item[ i ].price );
-        Del( i );
-      end;
 end;
 
 
@@ -153,19 +154,45 @@ begin
   Result := False;
 end;
 
+function TBag.NotEmpty(out index: Byte): Boolean;
+var
+  i: Integer;
+begin
+  for i := 0 to count - 1 do
+  if item[ i ] <> nil then
+  begin
+    index := i;
+    Result := True;
+    Exit;
+  end;
+
+  Result := False;
+end;
+
 function TBag.Add( item : TItem ): Boolean;
 var
   index : Byte;
 begin
-  Result := False;
-
-  if used < count then
-    if Empty( index ) = True then
+  if item <> nil then
+    if item.ClassType = TCoin then
     begin
-      Self.item[ index ] := item;
-      Inc( used );
+      Inc( gold, item.price );
       Result := True;
+      Exit;
+    end
+    else
+    begin
+      if used < count then
+      if Empty( index ) = True then
+      begin
+        Self.item[ index ] := item;
+        Inc( used );
+        Result := True;
+        Exit;
+      end;
     end;
+
+  Result := False;
 end;
 
 function TBag.Del( index : Byte ): TItem;

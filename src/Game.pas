@@ -7,10 +7,13 @@ uses
   DGLE2_types,
 
   Camera,
-  Map,
+  World,
   Creature.Player,
   Creature.Mob,
   Item;
+
+var
+  debug : Boolean = false;
 
 procedure Init;
 procedure Render;
@@ -20,21 +23,17 @@ function GetMapFocusedPoint: TPoint2;
 
 var
   counter : Integer;
+  time : Byte;
+
   camera : TCamera;
-  map : TMap;
 
   player : TPlayer;
   buffer : TItem;
 
+  foc_area : PArea;
   foc_reg : PRegion;
   foc_x : Byte;
   foc_y : Byte;
-
-  plr_reg : PRegion;
-  plr_x : Byte;
-  plr_y : Byte;
-
-  sndChannel : ISoundChannel;
 
 implementation
 
@@ -47,6 +46,7 @@ uses
   Settings,
 
   Input,
+  Sound,
   Convert,
   UI,
   Creature,
@@ -64,22 +64,9 @@ begin
   Result.y := ( mouse.state.iy/camera.scl + camera.pos.y - Window.Height / camera.scl/2 ) * TILE_SIZE / TSY ;
 end;
 
-procedure GetTile( pos : TPoint2; out region : PRegion; out x, y : Byte );
-var
-  region_x : Byte;
-  region_y : Byte;
-begin
-  region_x := Ceil( pos.x / 32 / 16 );
-  region_y := Ceil( pos.y / 32 / 16 );
-  region := @Map.region[ region_x, region_y ];
-  x := Round( pos.x / 32 - ( region_x - 1 ) * 16 );
-  y := Round( pos.y / 32 - ( region_y - 1 ) * 16 );
-end;
 
 procedure Exit;
 begin
-  sndChannel := nil;
-
   EngineCore.QuitEngine;
 end;
 
@@ -89,44 +76,40 @@ var
   j: Integer;
   k: Integer;
   reg : PRegion;
-  tile_x : Byte;
-  tile_y : Byte;
+  tile_x : Cardinal;
+  tile_y : Cardinal;
   x : Integer;
   y : Integer;
 begin
   Input.Init;
 
-  KeyBind[ 1 ] := Exit;
-  KeyBind[ 15 ] := Init;
-  KeyBind[ KEY_I ] := OpenBag;
-  KeyBind[ KEY_B ] := OpenBag;
-  KeyBind[ KEY_A ] := OpenStat;
-  KeyBind[ KEY_C ] := OpenStat;
-  KeyBind[ KEY_M ] := OpenMinimap;
-  KeyBind[ KEY_F1 ] := OpenHUD;
-
-  KeyBind[ KEY_D ] := SwitchDebug;
+  with keyboard do
+  begin
+    Bind( KEY_ESCAPE     , key_Down, exit );
+    Bind( KEY_I          , key_Down, OpenBag );
+    Bind( KEY_B          , key_Down, OpenBag );
+    Bind( KEY_A          , key_Up,   OpenStat );
+    Bind( KEY_C          , key_Up,   OpenStat );
+    Bind( KEY_NUMPADENTER, key_Down, Calculate );
+    Bind( KEY_F1         , key_Up,   OpenHUD );
+    Bind( KEY_D          , key_Up,   SwitchDebug );
+  end;
 
   camera.border := 15;
-  camera.scl := 1;
+  camera.scl := 1.5;
 
-  map.Generate;
-  map.Load;
+  Map.Load('Worlds\world.lodworld');
 
   Rune.Init;
   Runeword.Init;
 
   player := TPlayer.Create;
   player.Init( 1 );
-  player.pos.x := 3000;
-  player.pos.y := 2700;
-  player.trg.x := 3000;
-  player.trg.y := 2700;
+  player.Spawn( Point2( 16, 16 ), 20 );
 
-  j := Random( 150 ) + 15;
-  j := 0;
+  j := 50;
   mobStack.Free;
-  for i := 0 to j do
+  for i := 1 to j do
   begin
     k := mobStack.Add;
     mobStack.mob[ k ] := TMob.Create;
@@ -139,13 +122,14 @@ begin
     mobStack.mob[ k ].skillList[ 1 ] := TShokwave;
 
     repeat
-      x := Random( MAP_WIDTH  * 16 * TILE_SIZE ) + TILE_SIZE;
-      y := Random( MAP_HEIGHT * 16 * TILE_SIZE ) + TILE_SIZE;
-      GetTile( Point2( x, y ), reg, tile_x, tile_y );
-    until reg.coll[ tile_x, tile_y ] = 1;
+      x := Random( WORLD_WIDTH  * AREA_WIDTH  * 16 * TILE_SIZE );
+      y := Random( WORLD_HEIGHT * AREA_HEIGHT * 16 * TILE_SIZE );
 
-    mobStack.mob[ k ].pos.x := tile_x;
-    mobStack.mob[ k ].pos.y := tile_y;
+      reg := Map.GetRegion( Point2( x, y ));
+      Map.GetTile( Point2( x, y ), tile_x, tile_y );
+    until reg^.collision[ tile_x, tile_y ] <> 255;
+
+    mobStack.mob[ k ].Spawn( Point2( x, y ), 500 );
   end;
 
   for i := 0 to Length( mobStack.mob ) - 1 do
@@ -153,11 +137,7 @@ begin
 
   UI.Init;
 
-  if Sound.Music then
-    //snd_pack.Item[ Random( Length( snd_pack.Item ) ) ].Data.PlayEx( sndChannel, 0 );
-
-  EngineCore.ConsoleExec('r2d_profiler 2');
-  EngineCore.ConsoleExec('core_profiler 2');
+  Sound.Init;
 end;
 
 procedure Render;
@@ -172,12 +152,16 @@ begin
 
   Render2d.SetCamera( camera.pos, 0, Point2( camera.scl, camera.scl ));
 
-    map.Render( 0 );
-    map.Render( 1 );
-    map.Render( 2 );
-    map.Render( 4 );
+    Map.Render( 2 );
+    Map.Render( 3 );
+    Map.Render( 5 );
 
     Skill.Render;
+
+  Render2D.End2D;
+  Render2D.Begin2D;
+
+  Render2d.SetCamera( camera.pos, 0, Point2( camera.scl, camera.scl ));
 
     player.Render;
 
@@ -202,38 +186,26 @@ begin
           end;
         end;
 
-
     Creature.Mob.Render;
 
-    map.Render( 3 );
+    Map.Render( 4 );
+    if debug then Map.Render( 1 );
 
-
-    if foc_reg <> nil then
+    if debug then
     begin
-      Render2D.DrawRect( foc_reg.rect_s, Color4($9d1414) );
+      if foc_reg <> nil then
+      begin
+        Render2D.DrawRect( foc_reg.rect_s, Color4($9d1414) );
 
-      rect.x := foc_x * TSX + foc_reg.rect_s.x;
-      rect.y := foc_y * TSY + foc_reg.rect_s.y;
-      rect.width := TSX;
-      rect.height := TSY;
-      Render2D.DrawRect( rect, Color4($9d1414) );
+        rect.x := foc_x * TSX + foc_reg.rect_s.x;
+        rect.y := foc_y * TSY + foc_reg.rect_s.y;
+        rect.width := TSX;
+        rect.height := TSY;
+        Render2D.DrawRect( rect, Color4($9d1414) );
 
-      FntPack.Find('Tahoma').Draw2D( Round(rect.x), Round(rect.y),
-      StrToPAChar(IntToStr(foc_x)+', '+IntToStr(foc_y)), Color4 );
-    end;
-
-    if plr_reg <> nil then
-    begin
-      Render2D.DrawRect( plr_reg.rect_s, Color4($9d1414) );
-
-      rect.x := plr_x * TSX + plr_reg.rect_s.x;
-      rect.y := plr_y * TSY + plr_reg.rect_s.y;
-      rect.width := TSX;
-      rect.height := TSY;
-      Render2D.DrawRect( rect, Color4($9d1414) );
-
-      FntPack.Find('Tahoma').Draw2D( Round(rect.x), Round(rect.y),
-      StrToPAChar(IntToStr(plr_x)+', '+IntToStr(plr_y)), Color4 );
+        FntPack.Find('Tahoma').Draw2D( Round(rect.x), Round(rect.y),
+        StrToPAChar(IntToStr(foc_x)+', '+IntToStr(foc_y)), Color4 );
+      end;
     end;
 
   Render2d.SetCamera( Point2( 0, 0 ), 0, Point2( 1, 1 ));
@@ -242,6 +214,8 @@ begin
       //if PointInRect( GetMapFocusedPoint, foc_reg.rect ) then
         //if foc_reg.item[ foc_x + 1, foc_y + 1] <> nil then
           //foc_reg.item[ foc_x + 1, foc_y + 1 ].RenderInfo( mouse.state.iX, mouse.state.iY );
+
+    Render2D.DrawRect( Rectf( 0, 0, Window.Width, Window.Height ), Color4( $0, time ), PF_FILL );
 
     UI.Render;
 end;
@@ -256,9 +230,11 @@ var
   Param : TTaskParam;
 begin
   Inc( counter );
+  time := Round(Abs(Sin(RadToDeg( counter / 1000000 ))) * 192);
 
   Settings.Update;
   Input.Update;
+  Sound.Update;
 
   Map.Update( dt );
 
@@ -282,30 +258,38 @@ begin
 
         mobStack.mob[i].trg.x := mobStack.mob[i].trg.x + vec.x;
         mobStack.mob[i].trg.y := mobStack.mob[i].trg.y + vec.y;
-        mobStack.mob[i].Say('Fuck you!');
       end;
 
-      if Sqrt( Sqr( pos.x - mobStack.mob[i].pos.x ) +
-               Sqr( pos.y - mobStack.mob[i].pos.y )) < 50
-      then
-      begin
-        mouse.state.iX := Round( mobStack.mob[i].pos.x * camera.scl * TSX / TILE_SIZE - camera.pos.x * camera.scl + Window.Width / 2 );
-        mouse.state.iY := Round( mobStack.mob[i].pos.y * camera.scl * TSY / TILE_SIZE - camera.pos.y * camera.scl + Window.Height / 2 );
-      end;
+      if not GUIfocused^ then
+        if Sqrt( Sqr( pos.x - mobStack.mob[i].pos.x ) +
+                 Sqr( pos.y - mobStack.mob[i].pos.y )) < 50
+        then
+        begin
+          mouse.state.iX := Round( mobStack.mob[i].pos.x * camera.scl * TSX / TILE_SIZE - camera.pos.x * camera.scl + Window.Width / 2 );
+          mouse.state.iY := Round( mobStack.mob[i].pos.y * camera.scl * TSY / TILE_SIZE - camera.pos.y * camera.scl + Window.Height / 2 );
+        end;
     end;
 
-  // focused region
-  Pos := GetMapFocusedPoint;
-  foc_reg := nil;
+  {$REGION ' focused region '}
+    Pos := GetMapFocusedPoint;
 
-  for j := 1 to MAP_HEIGHT do
-  for i := 1 to MAP_WIDTH do
-  if PointInRect( pos, map.region[ i, j ].rect ) then
-  begin
-    foc_reg := @map.region[ i, j ];
-    foc_x := Round( pos.x - foc_reg.rect.x ) div TILE_SIZE;
-    foc_y := Round( pos.y - foc_reg.rect.y ) div TILE_SIZE;
-  end;
+    foc_area := nil;
+    for j := 0 to WORLD_HEIGHT - 1 do
+    for i := 0 to WORLD_WIDTH - 1 do
+      if PointInRect( pos, Map.area[ i, j ].rect ) then
+        foc_area := @Map.area[ i, j ];
+
+    foc_reg := nil;
+    if foc_area <> nil then
+      for j := 0 to AREA_HEIGHT - 1 do
+      for i := 0 to AREA_WIDTH - 1 do
+        if PointInRect( pos, foc_area.region[ i, j ].rect ) then
+        begin
+          foc_reg := @foc_area.region[ i, j ];
+          foc_x := Round( pos.x - foc_reg.rect.x ) div TIlE_SIZE;
+          foc_y := Round( pos.y - foc_reg.rect.y ) div TIlE_SIZE;
+        end;
+  {$ENDREGION}
 
   // Player
 
@@ -315,25 +299,20 @@ begin
       if foc_reg <> nil then
         if foc_reg.item[ foc_x + 1, foc_y + 1 ] <> nil then
         begin
-          player.TaskList.Add( Task( Move, TaskParam( pos.x, pos.y )));
+          player.TaskList.Add( Task( t_Move, TaskParam( pos.x, pos.y )));
           Param.x := pos.x;
           Param.y := pos.y;
           Param.item := @foc_reg.item[ foc_x + 1, foc_y + 1 ];
-          player.TaskList.Add( Task( Take, Param ));
+          player.TaskList.Add( Task( t_Take, Param ));
         end;
 
     if mouse.state.bRightButton then
-    begin
-      if Player <> nil then
-      begin
-        player.TaskList.Free;
-        player.TaskList.Add( Task( Move, TaskParam( pos.x, pos.y )));
-      end
-      else
-      begin
-        camera.trg := GetMapFocusedPoint;
-      end;
-    end;
+      if player <> nil then
+        if not player.isDead then
+        begin
+          player.TaskList.Free;
+          player.TaskList.Add( Task( t_Move, TaskParam( pos.x, pos.y )));
+        end;
   end;
 
   vec.x := GetMapFocusedPoint.x - player.pos.x;
@@ -345,45 +324,32 @@ begin
 
   player.Update( dt );
 
-  // plr_reg
-
-  plr_reg := nil;
-
-  for j := 1 to MAP_HEIGHT do
-  for i := 1 to MAP_WIDTH do
-  if PointInRect( player.pos, map.region[ i, j ].rect ) then
-  begin
-    plr_reg := @map.region[ i, j ];
-    plr_x := Round( player.pos.x - plr_reg.rect.x ) div TILE_SIZE;
-    plr_y := Round( player.pos.y - plr_reg.rect.y ) div TILE_SIZE;
-  end;
-
-  // end
-
   Runeword.Update;
   Skill.Update( dt );
 
-  // camera
-  if player <> nil then
-  begin
-    camera.trg.x := player.pos.x * TSX / TILE_SIZE;
-    camera.trg.y := player.pos.y * TSY / TILE_SIZE;
-  end;
+  {$REGION ' camera '}
+    if player <> nil then
+    begin
+      camera.trg.x := player.pos.x * TSX / TILE_SIZE;
+      camera.trg.y := player.pos.y * TSY / TILE_SIZE;
+    end;
 
-  if mouse.state.bMiddleButton then
-  begin
-    TSY := TSY + mouse.state.iDeltaY div 10;
-    if TSY < TSX div 2 then TSY := TSX div 2;
-    if TSY > TSX then TSY := TSX;
+    if mouse.state.bMiddleButton then
+    begin
+      TSY := TSY + mouse.state.iDeltaY div 10;
+      if TSY < TSX div 2 then TSY := TSX div 2;
+      if TSY > TSX then TSY := TSX;
 
-    camera.pos.x := player.pos.x * TSX / TILE_SIZE;
-    camera.pos.y := player.pos.y * TSY / TILE_SIZE;
-  end;
+      camera.pos.x := player.pos.x * TSX / TILE_SIZE;
+      camera.pos.y := player.pos.y * TSY / TILE_SIZE;
+    end;
 
-  camera.Update;
+    camera.Update;
+  {$ENDREGION}
 
   UI.Update;
 
 end;
 
 end.
+

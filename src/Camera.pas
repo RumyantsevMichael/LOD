@@ -13,6 +13,8 @@ type
     vel : Single;
     scl : Single;
 
+    screen : TRectf;
+
     border : Byte;
 
     procedure Update;
@@ -22,7 +24,8 @@ implementation
 
 uses
   Settings,
-  Input;
+  Input,
+  World;
 
 { TCAmera }
 
@@ -64,6 +67,12 @@ begin
   scl := scl + mouse.state.iDeltaWheel / 1200;
   if scl < 0.3 then scl := 0.3;
   if scl > 3.0 then scl := 3.0;
+
+  screen := Rectf(
+    pos.x - Window.Width / scl / 2 - TSX,
+    pos.y - window.height / scl / 2 - TSY,
+    Window.Width / scl + 2 * TSX,
+    Window.Height / scl + 2 * TSY );
 end;
 
 end.
