@@ -11,7 +11,7 @@ type
 
   TRunePage = record
     item : array [0..8] of TItem;
-    used : Byte;
+    used : Integer;
 
     grid : PGrid;
 

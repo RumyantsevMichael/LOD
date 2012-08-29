@@ -4,8 +4,10 @@ interface
 
 uses
   DGLE2_types,
+  DGLE2_EXT,
 
   Skill,
+  Rune,
   Creature;
 
 type
@@ -19,9 +21,11 @@ type
 
     damage : Integer;
 
+    Emitter : IParticleEmitter;
+
     constructor Create; override;
 
-    procedure Init( Parent : TCreature ); override;
+    procedure Init( Parent : TCreature; target : TPoint2; Rune : array of TRune ); override;
     procedure Render; override;
     procedure Update( dt : Single ); override;
   end;
@@ -34,19 +38,23 @@ uses
   SubSystems,
   Resources,
 
-  Map,
-  Creature.Mob;
+  Game,
+  World,
+  TaskList;
 
 { TShockwave }
 
 constructor TShokwave.Create;
 begin
   inherited;
+
   name := 'shockwave';
   mp_price := 1;
 end;
 
-procedure TShokwave.Init(Parent: TCreature);
+procedure TShokwave.Init( Parent : TCreature; target : TPoint2; Rune : array of TRune );
+var
+  i : Integer;
 begin
   inherited;
 
@@ -56,19 +64,23 @@ begin
   begin
     parent.DecMP( mp_price );
 
-    Pos := Parent.pos;
+    for i := Low( rune ) to High( rune ) do
+      if rune[ i ].name = 'Sowilu' then
+        size_max := ( rune[ i ].Level );
+
+    pos := Parent.pos;
 
     damage := parent.energy * 1;
-
-    time := 100;
     size := 0;
-    size_max := 5;
+
+    //pp_Shokwave.CreateEmitter( Emitter, true );
   end;
 end;
 
 procedure TShokwave.Render;
 var
-  position : TPoint2;
+  position : TPoint3;
+  exist : Boolean;
 begin
   inherited;
 
@@ -77,13 +89,28 @@ begin
     position.x := pos.x * TSX / TILE_SIZE;
     position.y := pos.y * TSY / TILE_SIZE;
 
-    Render2D.DrawEllipse( position, Point2( size * TSX, size * TSY ), Round(size * TSX), Color4($9d1414), PF_SMOOTH );
+    Render2D.DrawEllipse
+    (
+      Point2( position.x, position.y ),
+      Point2( size * TSX, size * TSY ),
+      Round( size * TSX ), Color4($9d1414, 128), PF_FILL
+    );
+
+    pp_Shokwave.EmitterExist( Emitter, exist );
+
+    if exist then
+    begin
+      Emitter.SetPosition( position, true );
+      Emitter.SetScale( size * camera.scl );
+      pp_Shokwave.Draw2D;
+    end;
   end;
 end;
 
 procedure TShokwave.Update(dt: Single);
 var
   i: Integer;
+  exist : Boolean;
 begin
   inherited;
 
@@ -103,9 +130,19 @@ begin
           then
           begin
             parent.enemyList.item[ i ].DecHP( damage );
+
+            if parent.ClassName = 'TPlayer' then
+              parent.enemyList.item[ i ].dist_aggr := parent.enemyList.item[ i ].dist_aggr_d * 2;
+
             if parent.enemyList.item[ i ].isDead then
               parent.IncXP( 25 );
           end;
+  end
+  else
+  begin
+    pp_Fireball.EmitterExist( Emitter, exist );
+
+    if exist then pp_Fireball.KillEmitter( Emitter );
   end;
 end;
 

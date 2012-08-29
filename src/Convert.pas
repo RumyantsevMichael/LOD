@@ -7,6 +7,8 @@ function IntToPAChar( const value : Integer ): PAnsiChar;
 function StrToPAChar( const value : string ): PAnsiChar;
 function BoolToPAChar( const value : Boolean ): PAnsiChar;
 
+function ExtractFileNameEx(FileName: string; ShowExtension: Boolean): string;
+
 implementation
 
 uses
@@ -35,6 +37,45 @@ begin
   else
     Result := 'None';
   end;
+end;
+
+
+function ExtractFileNameEx(FileName: string; ShowExtension: Boolean): string;
+var
+  I: Integer;
+  S, S1: string;
+begin
+  I := Length(FileName);
+
+  if I <> 0 then
+  begin
+    while (FileName[i] <> '\') and (i > 0) do
+      i := i - 1;
+
+    S := Copy(FileName, i + 1, Length(FileName) - i);
+    i := Length(S);
+
+    if i = 0 then
+    begin
+      Result := '';
+      Exit;
+    end;
+
+    while (S[i] <> '.') and (i > 0) do
+      i := i - 1;
+
+    S1 := Copy(S, 1, i - 1);
+
+    if s1 = '' then
+      s1 := s;
+
+    if ShowExtension = TRUE then
+      Result := s
+    else
+      Result := s1;
+  end
+  else
+    Result := '';
 end;
 
 end.

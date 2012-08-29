@@ -3,7 +3,10 @@ unit Runeword;
 interface
 
 uses
-  Skill;
+  DGLE2_types,
+
+  Skill,
+  Rune;
 
 type
 
@@ -27,12 +30,16 @@ type
   end;
 
   TRuneStack = record
-    rune : array of string;
+    rune : array of TRune;
     count : Byte;
     time : Integer;
+    max_time : Integer;
 
-    procedure Push( const rune : string );
+    procedure Push( const rune : TRune );
+    procedure SetTime( value : Integer );
+
     procedure Update;
+    procedure Render( pos : TPoint2; size : Byte );
     procedure Free;
   end;
 
@@ -40,6 +47,7 @@ type
 
   procedure Init;
   procedure Update;
+  procedure Calculate;
 
 var
   RunewordPack : TRunewordPack;
@@ -48,76 +56,84 @@ var
 implementation
 
 uses
+  SubSystems,
   Input,
   Game,
   Skill.Shokwave,
-  Skill.Fireball;
+  Skill.Fireball,
+  Skill.Poisoning;
 
 procedure Init;
 begin
   Skill.Init;
+  RuneStack.SetTime( 25 );
 
-  RunewordPack.Add( MakeRuneword('FusRoDah'));
-               RunewordPack.Find('FusRoDah').Add('Iwaz');
-               RunewordPack.Find('FusRoDah').Add('Sowilu');
-               RunewordPack.Find('FusRoDah').skill := TShokwave;
+  RunewordPack.Add( MakeRuneword('Shokwave'));
+               RunewordPack.Find('Shokwave').Add('Iwaz');
+               RunewordPack.Find('Shokwave').Add('Sowilu');
+               RunewordPack.Find('Shokwave').skill := TShokwave;
 
-  RunewordPack.Add( MakeRuneword('DahRoFus'));
-               RunewordPack.Find('DahRoFus').Add('Sowilu');
-               RunewordPack.Find('DahRoFus').Add('Iwaz');
-               RunewordPack.Find('DahRoFus').skill := TFireball;
+  RunewordPack.Add( MakeRuneword('Fireball'));
+               RunewordPack.Find('Fireball').Add('Sowilu');
+               RunewordPack.Find('Fireball').Add('Iwaz');
+               RunewordPack.Find('Fireball').skill := TFireball;
+
+  RunewordPack.Add( MakeRuneword('Poisoning'));
+               RunewordPack.Find('Poisoning').Add('Sowilu');
+               RunewordPack.Find('Poisoning').Add('Berkana');
+               RunewordPack.Find('Poisoning').Add('Iwaz');
+               RunewordPack.Find('Poisoning').skill := TPoisoning;
 end;
 
 procedure Update;
+var
+  key: Integer;
+begin
+  for key := 71 to 81 do
+    if keyboard.KeyDown[ key ] then
+      Break;
+
+  case key of
+    71: if player.RunePage.item[ 0 ] <> nil then RuneStack.Push( player.RunePage.item[ 0 ] as TRune ); // num 7
+    72: if player.RunePage.item[ 1 ] <> nil then RuneStack.Push( player.RunePage.item[ 1 ] as TRune ); // num 8
+    73: if player.RunePage.item[ 2 ] <> nil then RuneStack.Push( player.RunePage.item[ 2 ] as TRune ); // num 9
+    75: if player.RunePage.item[ 3 ] <> nil then RuneStack.Push( player.RunePage.item[ 3 ] as TRune ); // num 4
+    76: if player.RunePage.item[ 4 ] <> nil then RuneStack.Push( player.RunePage.item[ 4 ] as TRune ); // num 5
+    77: if player.RunePage.item[ 5 ] <> nil then RuneStack.Push( player.RunePage.item[ 5 ] as TRune ); // num 6
+    79: if player.RunePage.item[ 6 ] <> nil then RuneStack.Push( player.RunePage.item[ 6 ] as TRune ); // num 1
+    80: if player.RunePage.item[ 7 ] <> nil then RuneStack.Push( player.RunePage.item[ 7 ] as TRune ); // num 2
+    81: if player.RunePage.item[ 8 ] <> nil then RuneStack.Push( player.RunePage.item[ 8 ] as TRune ); // num 3
+  end;
+
+  RuneStack.Update;
+end;
+
+procedure Calculate;
 var
   i: Integer;
   j: Integer;
   k: Integer;
 begin
-  if KeyStack.count > 0 then
-  begin
-    if RuneStack.time <= 15 then
-    begin
-      case KeyStack.key[ 0 ] of
-        71: if player.RunePage.item[ 0 ] <> nil then RuneStack.Push( player.RunePage.item[ 0 ].name ); // num 7
-        72: if player.RunePage.item[ 1 ] <> nil then RuneStack.Push( player.RunePage.item[ 1 ].name ); // num 8
-        73: if player.RunePage.item[ 2 ] <> nil then RuneStack.Push( player.RunePage.item[ 2 ].name ); // num 9
-        75: if player.RunePage.item[ 3 ] <> nil then RuneStack.Push( player.RunePage.item[ 3 ].name ); // num 4
-        76: if player.RunePage.item[ 4 ] <> nil then RuneStack.Push( player.RunePage.item[ 4 ].name ); // num 5
-        77: if player.RunePage.item[ 5 ] <> nil then RuneStack.Push( player.RunePage.item[ 5 ].name ); // num 6
-        79: if player.RunePage.item[ 6 ] <> nil then RuneStack.Push( player.RunePage.item[ 6 ].name ); // num 1
-        80: if player.RunePage.item[ 7 ] <> nil then RuneStack.Push( player.RunePage.item[ 7 ].name ); // num 2
-        81: if player.RunePage.item[ 8 ] <> nil then RuneStack.Push( player.RunePage.item[ 8 ].name ); // num 3
-      end;
-    end;
-  end;
-
-  RuneStack.Update;
-
   for i := 0 to RunewordPack.count - 1 do
-  begin
     if RunewordPack.runeword[ i ].count = RuneStack.count then
-    begin
       for j := 0 to RuneStack.count - 1 do
-      begin
-        if RuneStack.rune[ j ] = RunewordPack.runeword[ i ].rune[ j ] then
+        if RuneStack.rune[ j ].name = RunewordPack.runeword[ i ].rune[ j ] then
         begin
           if j = RuneStack.count - 1 then
           begin
             k := SkillStack.Add;
             SkillStack.Item[ k ] := RunewordPack.runeword[ i ].skill.Create;
-            SkillStack.Item[ k ].Init( player );
-            player.Say( RunewordPack.runeword[ i ].name );
-
+            SkillStack.Item[ k ].Init( player, GetMapFocusedPoint, RuneStack.rune );
+            //player.Say( RunewordPack.runeword[ i ].name );
             RuneStack.Free;
           end;
         end
         else
           Break;
-      end;
-    end;
-  end;
+
+  RuneStack.Free;
 end;
+
 
 function MakeRuneword( const name : string ): TRuneword;
 begin
@@ -157,12 +173,40 @@ end;
 
 { TRuneStack }
 
-procedure TRuneStack.Push( const rune: string);
+procedure TRuneStack.Push( const rune: TRune);
 begin
   SetLength( Self.rune, count + 1 );
   Self.rune[ count ] := rune;
   Inc( count );
-  time := 20;
+  time := max_time;
+end;
+
+procedure TRuneStack.SetTime(value: Integer);
+begin
+  max_time := value;
+end;
+
+procedure TRuneStack.Render(pos: TPoint2; size: Byte);
+var
+  rect : TRectf;
+  i: Integer;
+begin
+  rect := Rectf( pos.x - ( size * count ) / 2, pos.y - size / 2, size * count, size );
+
+  for i := 0 to count - 1 do
+  begin
+    rune[ i ].texture^.Draw2D( Round( rect.x + i * size ), Round( rect.y ), size, size );
+  end;
+
+  Render2d.LineWidth( 5 );
+    i := Round( time / max_time * rect.width );
+    Render2D.DrawLine
+    (
+      Point2( rect.x, rect.y + size ),
+      Point2( rect.x + i, rect.y + size ),
+      Color4($9d1414)
+    );
+  Render2d.LineWidth( 1 );
 end;
 
 procedure TRuneStack.Update;
@@ -174,6 +218,7 @@ end;
 
 procedure TRuneStack.Free;
 begin
+  rune := nil;
   SetLength( rune, 0 );
   count := 0;
   time := 0;

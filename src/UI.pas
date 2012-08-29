@@ -12,7 +12,7 @@ procedure Update;
 procedure OpenBag;
 procedure OpenStat;
 procedure SaveStat;
-procedure OpenMiniMap;
+procedure OpenMiniWorld;
 procedure OpenHUD;
 
 procedure SwitchDebug;
@@ -26,7 +26,7 @@ procedure DecPlayerVP;
 procedure IncPlayerDP;
 procedure DecPlayerDP;
 
-procedure RenderMinimap( scale : Byte );
+procedure RenderMiniMap( scale : Byte );
 procedure RenderHUD;
 
 implementation
@@ -44,7 +44,7 @@ uses
   Convert,
   Game,
   Creature.Mob,
-  Map,
+  World,
   Runeword,
 
   UI.Component,
@@ -58,7 +58,7 @@ uses
 var
   GUIform : TGUIPack;
 
-  ShowMinimap : Boolean;
+  ShowMiniWorld : Boolean;
   ShowHUD : Boolean = True;
 
   buf_ep : ShortInt;
@@ -614,9 +614,9 @@ end;
 procedure Render;
 begin
   if RuneStack.count <> 0 then
-    FntPack.Find('Tahoma').Draw2D( 10, 110, StrToPAChar(RuneStack.rune[ 0 ]), Color4 );
+    FntPack.Find('Tahoma').Draw2D( 10, 110, StrToPAChar(RuneStack.rune[ 0 ].name), Color4 );
 
-  if ShowMinimap then RenderMinimap( 2 );
+  if ShowMiniWorld then RenderMiniMap( 2 );
 
   if ShowHUD then RenderHUD;
 
@@ -632,12 +632,17 @@ begin
     buffer.texture.Draw2D( mouse.state.iX, mouse.state.iY, 64, 64 );
 
   // mouse
-  Render2D.DrawPoint( Point2( mouse.state.iX, mouse.state.iY ), Color4($ffffff), 5 );
-  FntPack.Find('Tahoma').Draw2D(
-    mouse.state.iX, mouse.state.iY,
-    StrToPAChar(
-      FloatToStr( Round( GetMapFocusedPoint.x ))+', ' +
-      FloatToStr( Round( GetMapFocusedPoint.y ))), Color4 );
+  if Game.Debug then
+  begin
+    FntPack.Find('Tahoma').Draw2D(
+      mouse.state.iX, mouse.state.iY,
+      StrToPAChar(
+        FloatToStr( Round( GetMapFocusedPoint.x ))+', ' +
+        FloatToStr( Round( GetMapFocusedPoint.y ))), Color4 );
+
+    FntPack.Find('Tahoma').Draw2D(
+      mouse.state.iX, mouse.state.iY - 15, IntToPAChar( time ), Color4 );
+  end;
 end;
 
 procedure Update;
@@ -692,9 +697,9 @@ begin
   OpenStat;
 end;
 
-procedure OpenMinimap;
+procedure OpenMiniWorld;
 begin
-  ShowMinimap := not ShowMinimap;
+  ShowMiniWorld := not ShowMiniWorld;
 end;
 
 procedure OpenHUD;
@@ -766,7 +771,7 @@ begin
 end;
 
 
-procedure RenderMinimap( scale : Byte );
+procedure RenderMiniMap( scale : Byte );
 var
   x : Integer;
   y : Integer;
@@ -780,12 +785,12 @@ begin
   posx := 0;
   posy := 0;
 
-  for j := 0 to MAP_HEIGHT - 1 do
-  for i := 0 to MAP_WIDTH - 1 do
+  for j := 0 to World_HEIGHT - 1 do
+  for i := 0 to World_WIDTH - 1 do
     for y := 0 to 15 do
     for x := 0 to 15 do
     begin
-      case Game.map.region[ i + 1, j + 1 ].tile[ 1 ][ x + 1, y + 1 ] of
+      case Game.World.region[ i + 1, j + 1 ].tile[ 1 ][ x + 1, y + 1 ] of
         0:;
         1: Render2D.DrawPoint( Point2(
                                        posx + ( i * 16 * scale ) + x * scale,
@@ -801,7 +806,7 @@ begin
                               );
       end;
 
-      case Game.map.region[ i + 1, j + 1 ].tile[ 0 ][ x + 1, y + 1 ] of
+      case Game.World.region[ i + 1, j + 1 ].tile[ 0 ][ x + 1, y + 1 ] of
         0:;
         1: Render2D.DrawPoint( Point2(
                                        posx + ( i * 16 * scale ) + x * scale,
@@ -861,17 +866,14 @@ begin
 
   // rune
 
+  RuneStack.Render( Point2( Window.Width / 2, 32 ), 64 );
+
   for i := 0 to 2 do
   for j := 0 to 2 do
   begin
     txt_pack_GUI.Find('potion').Draw2D( i*48, j*48, 48, 48 );
   end;
-
-  Render2d.LineWidth( 5 );
-    i := Round( RuneStack.time / 20 * 144 );
-    Render2D.DrawLine( Point2( 0, 144 ), Point2( i, 144 ), Color4($9d1414) );
-  Render2d.LineWidth( 1 );
-
+  {
   for i := 0 to KeyStack.count - 1 do
   begin
     case KeyStack.key[ i ] of
@@ -888,7 +890,7 @@ begin
       81: txt_pack_GUI.Find('potion_y').Draw2D( 96, 96, 48, 48 ); // num 3
       82: ;
     end;
-  end;
+  end;     }
 
   for j := 0 to 2 do
   for i := 0 to 2 do

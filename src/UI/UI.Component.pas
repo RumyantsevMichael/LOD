@@ -105,7 +105,10 @@ begin
     if Item[ i ] <> nil then
     begin
       Item[ i ].Update;
-      if Item[ i ].focused then focused := True;
+
+      if Item[ i ].visible then
+      if Item[ i ].focused then
+        focused := True;
     end;
 end;
 

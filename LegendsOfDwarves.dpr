@@ -1,4 +1,4 @@
-program LegendsOfDwarves;
+Ôªøprogram LegendsOfDwarves;
 
 uses
   Windows,
@@ -12,7 +12,7 @@ uses
   Camera in 'src\Camera.pas',
   Input in 'src\Input.pas',
   Game in 'src\Game.pas',
-  Map in 'src\Map.pas',
+  World in 'src\World.pas',
   Creature in 'src\Creature.pas',
   Creature.Mob in 'src\Creature.Mob.pas',
   Creature.Player in 'src\Creature.Player.pas',
@@ -35,13 +35,15 @@ uses
   UI.Caption in 'src\UI\UI.Caption.pas',
   UI.Image in 'src\UI\UI.Image.pas',
   Item.Coin in 'src\Items\Item.Coin.pas',
-  TaskList in 'src\TaskList.pas';
+  TaskList in 'src\TaskList.pas',
+  Skill.Poisoning in 'src\Skills\Skill.Poisoning.pas';
 
 const
   APP_CAPTION = 'Legends of Dwarves';
-  APP_VERSION = '0.0.0.4';
+  APP_VERSION = '0.0.0.8';
   APP_STAGE = 'Pre-alpha';
   LIB_PATH = 'Lib\';
+  PLG_PATH = 'Plugin\';
 
 procedure Init( pParametr: Pointer ); stdcall;
 begin
@@ -49,7 +51,7 @@ begin
   Resources.Load;
 
   SubSystems.Render.SetClearColor(Color4($0));
-  SubSystems.Input.Configure( ICF_HIDE_CURSOR  );
+  SubSystems.Input.Configure( ICF_DEFAULT );
 
   Game.Init;
   Game.Update( 1 );
@@ -81,12 +83,25 @@ begin
 
   if ( GetEngine( LIB_PATH + 'DGLE2.dll', EngineCore )) then
   begin
-    if ( SUCCEEDED( EngineCore.InitializeEngine( 0, APP_CAPTION+' v.'+APP_VERSION+' '+APP_STAGE,
-      EngWindow( Window.Width, Window.Height, Window.FullScreen,
-                 Window.VSync, Window.MSAA, EWF_ALLOW_SIZEING ))))
+    if SUCCEEDED
+      (
+        EngineCore.InitializeEngine
+        (
+          0,
+          APP_CAPTION+' v.'+APP_VERSION+' '+APP_STAGE,
+          EngWindow
+          (
+            Window.Width, Window.Height, Window.FullScreen,
+            Window.VSync, Window.MSAA, EWF_ALLOW_SIZEING
+          )
+        )
+      )
     then
     begin
       EngineCore.ConsoleVisible( False );
+
+      EngineCore.ConnectPlugin( PLG_PATH + 'pyro.dplug', Particles );
+
       EngineCore.AddProcedure( EPT_INIT, @Init );
       EngineCore.AddProcedure( EPT_FREE, @Free );
       EngineCore.AddProcedure( EPT_PROCESS, @Process );
@@ -98,7 +113,7 @@ begin
     FreeEngine();
   end
   else
-    MessageBox( 0, 'ÕÂ Û‰‡ÎÓÒ¸ Á‡„ÛÁËÚ¸ ' + LIB_PATH + 'DGLE2.dll',
+    MessageBox( 0, '–ù–µ —É–¥–∞–ª–æ—Å—å –∑–∞–≥—Ä—É–∑–∏—Ç—å ' + LIB_PATH + 'DGLE2.dll',
       APP_CAPTION, MB_OK or MB_ICONERROR or MB_SETFOREGROUND );
 
 end.

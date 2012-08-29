@@ -15,13 +15,12 @@ type
 
     procedure Attack( subject: PCreature ); override;
 
-    procedure Drop;
-
     procedure Init( group : Byte );
     procedure Render;
     procedure Update( dt : Single );
 
-    procedure Death; override;
+    procedure Drop; override;
+    procedure Death;
   end;
 
   TMobStack = record
@@ -46,10 +45,12 @@ uses
 
   SubSystems,
   Resources,
+  Sound,
 
   Game,
-  Map,
+  World,
 
+  TaskList,
   Item,
   Item.Coin,
 
@@ -77,25 +78,23 @@ begin
   for j := 0 to Length( mobStack.mob ) - 1 do
     if i <> j then
       if not mobStack.mob[ i ].isDead then
-        if not mobStack.mob[ j ].isDead then
+      if not mobStack.mob[ j ].isDead then
+      begin
+        if Sqrt( Sqr( mobStack.mob[i].pos.x - mobStack.mob[j].pos.x ) +
+                 Sqr( mobStack.mob[i].pos.y - mobStack.mob[j].pos.y )) < 24
+        then
         begin
-          if Sqrt( Sqr( mobStack.mob[i].pos.x - mobStack.mob[j].pos.x ) +
-                   Sqr( mobStack.mob[i].pos.y - mobStack.mob[j].pos.y )) < 24
-          then
-          begin
-            vec.x := mobStack.mob[j].pos.x - mobStack.mob[i].pos.x;
-            vec.y := mobStack.mob[j].pos.y - mobStack.mob[i].pos.y;
+          vec.x := mobStack.mob[j].pos.x - mobStack.mob[i].pos.x;
+          vec.y := mobStack.mob[j].pos.y - mobStack.mob[i].pos.y;
 
-            l := Sqrt( Sqr( Vec.x ) + Sqr( Vec.y ));
-            vec.x := vec.x / l * ( 24 - l );
-            vec.y := vec.y / l * ( 24 - l );
+          l := Sqrt( Sqr( Vec.x ) + Sqr( Vec.y ));
+          vec.x := vec.x / l * ( 24 - l );
+          vec.y := vec.y / l * ( 24 - l );
 
-            mobStack.mob[j].trg.x := mobStack.mob[j].trg.x + vec.x;
-            mobStack.mob[j].trg.y := mobStack.mob[j].trg.y + vec.y;
-
-            mobStack.mob[j].Say('Отвали');
-          end;
+          mobStack.mob[j].trg.x := mobStack.mob[j].trg.x + vec.x;
+          mobStack.mob[j].trg.y := mobStack.mob[j].trg.y + vec.y;
         end;
+      end;
 
   for i := 0 to Length( mobStack.mob ) - 1 do
   for j := 0 to Length( mobStack.mob ) - 1 do
@@ -116,12 +115,14 @@ procedure TMob.Init( group : Byte ) ;
 begin
   inherited Init( group );
 
-  energy := 1;
-  vitality := 1;
-  dexterity := 4;
+  energy := 5;
+  vitality := 5;
+  dexterity := 5 + ( Random( 2 ) - 1 );
 
   dist_aggr := 5;
-  dist_attack := 3;
+  dist_aggr_d := 5;
+  dist_attack := 4.5;
+  dist_Attack_d := 4.5;
 
   hp_max := 90 + vitality * 2;
   hp_regen := vitality / 20;
@@ -129,10 +130,18 @@ begin
   mp_max := 90 + energy * 2;
   mp_regen := energy / 20;
 
+  xp := 25;
+
   speed := 4 + dexterity / 10;
 
   hp := hp_max;
   mp := mp_max;
+
+  bag.SetSize( 6 );
+  bag.used := 0;
+
+  bag.Add( TCoin.Create( Random( 20 ) + 10 ));
+  bag.Add( MakeRune('Berkana', Random( 2 ) + 1 ));
 end;
 
 procedure TMob.Render;
@@ -175,23 +184,36 @@ end;
 procedure TMob.Update(dt: Single);
 var
   i: Integer;
+  x: Single;
+  y: Single;
 begin
   inherited Update( dt );
 
-  if counter mod 128 = 0 then
+  if not isDead then
   begin
-    trg.x := (Random(32) + 64) * Sin( Random( 360 ) + pi/2 ) + pos.x;
-    trg.y := (Random(32) + 64) * Sin( Random( 360 ) ) + pos.y;
+    if counter mod 128 = 0 then
+    begin
+      x := (Random(32) + 64) * Sin( Random( 360 ) + pi/2 ) + pos.x;
+      y := (Random(32) + 64) * Sin( Random( 360 ) ) + pos.y;
+      TaskList.Add( Task( t_Move, TaskParam( x, y )));
+    end;
+
+    for i := 0 to enemyList.count - 1 do
+      if enemyList.item[ i ] <> nil then
+        if not enemyList.item[ i ].isDead then
+          if Sqrt( Sqr( pos.x - enemyList.item[ i ].pos.x ) +
+                   Sqr( pos.y - enemyList.item[ i ].pos.y )) <= dist_aggr * TILE_SIZE
+          then
+          begin
+            TaskList.Free;
+            Attack( enemyList.item[ i ] );
+
+            Sound.MusicList.SetTheme( Battle );
+
+            if enemyList.item[ i ].ClassName = 'TPlayer' then
+              enemyList.item[ i ].Attack( @Self );
+          end;
   end;
-
-  for i := 0 to enemyList.count - 1 do
-    if enemyList.item[ i ] <> nil then
-      if not enemyList.item[ i ].isDead then
-        if Sqrt( Sqr( pos.x - enemyList.item[ i ].pos.x ) +
-                 Sqr( pos.y - enemyList.item[ i ].pos.y )) <= dist_aggr * TILE_SIZE
-        then
-          Attack( enemyList.item[ i ] );
-
 end;
 
 
@@ -216,10 +238,9 @@ begin
     begin
       if counter mod 32 = 0 then
       begin
-        k := SkillStack.Add;
-             SkillStack.Item[ k ] := skillList[ Random( Length( skillList ) ) ].Create;
-             SkillStack.Item[ k ].Init( self );
-        if Random( 8 ) = 0 then Say('Получай!');
+        //k := SkillStack.Add;
+        //     SkillStack.Item[ k ] := skillList[ Random( Length( skillList ) ) ].Create( nil );
+        //     SkillStack.Item[ k ].Init( self );
       end;
     end
     else
@@ -233,27 +254,30 @@ end;
 procedure TMob.Death;
 begin
   inherited;
-
-  isDead := True;
-  Drop;
 end;
 
 procedure TMob.Drop;
 var
   x : Byte;
   y : Byte;
+  i: Byte;
 begin
   if region <> nil then
   begin
     x := Round( pos.x - region.rect.x ) div TILE_SIZE + 1;
     y := Round( pos.y - region.rect.y ) div TILE_SIZE + 1;
-  end;
 
-  case Random( 4 ) of
-    0:;
-    1: region.item[ x, y ] := RunePack.Find('Iwaz')^;
-    2: region.item[ x, y ] := RunePack.Find('Sowilu')^;
-    3: region.item[ x, y ] := TCoin.Create( Random( 20 ) + 10 );
+
+    case Random( 3 ) of
+      0:;
+      1:
+      begin
+        if bag.gold <> 0 then
+          region.item[ x, y ] := TCoin.Create( bag.gold );
+        bag.gold := 0;
+      end;
+      2: if bag.NotEmpty( i ) then region.item[ x, y ] := bag.item[ i ];
+    end;
   end;
 end;
 
